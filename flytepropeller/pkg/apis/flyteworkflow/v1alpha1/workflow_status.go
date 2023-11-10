@@ -50,7 +50,7 @@ func IsWorkflowPhaseTerminal(p WorkflowPhase) bool {
 }
 
 func (in *WorkflowStatus) SetMessage(msg string) {
-	in.Message = msg
+	in.Message = ""
 }
 
 func (in *WorkflowStatus) UpdatePhase(p WorkflowPhase, msg string, err *core.ExecutionError) {
