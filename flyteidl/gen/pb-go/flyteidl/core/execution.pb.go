@@ -401,9 +401,9 @@ func (m *ExecutionError) GetCode() string {
 }
 
 func (m *ExecutionError) GetMessage() string {
-	if m != nil {
-		return m.Message
-	}
+	// if m != nil {
+	// 	return m.Message
+	// }
 	return ""
 }
 

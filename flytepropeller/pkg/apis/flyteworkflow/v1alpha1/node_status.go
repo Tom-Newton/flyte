@@ -136,11 +136,11 @@ func (in *DynamicNodeStatus) SetDynamicNodePhase(phase DynamicNodePhase) {
 }
 
 func (in *DynamicNodeStatus) SetExecutionError(err *core.ExecutionError) {
-	if err != nil {
-		in.Error = &ExecutionError{ExecutionError: err}
-	} else {
-		in.Error = nil
-	}
+	in.Error = nil
+	// if err != nil {
+	// 	in.Error = &ExecutionError{ExecutionError: err}
+	// } else {
+	// }
 }
 
 func (in *DynamicNodeStatus) SetIsFailurePermanent(isFailurePermanent bool) {
@@ -595,25 +595,25 @@ func (in *NodeStatus) GetOrCreateArrayNodeStatus() MutableArrayNodeStatus {
 }
 
 func (in *NodeStatus) UpdatePhase(p NodePhase, occurredAt metav1.Time, reason string, err *core.ExecutionError) {
-	if in.Phase == p && in.Message == reason {
+	if in.Phase == p {
 		// We will not update the phase multiple times. This prevents the comparison from returning false positive
 		return
 	}
 
 	in.Phase = p
-	in.Message = reason
-	if len(reason) > maxMessageSize {
-		in.Message = reason[:maxMessageSize]
-	}
+	in.Message = ""
+	// if len(reason) > maxMessageSize {
+	// 	in.Message = reason[:maxMessageSize]
+	// }
 
 	n := occurredAt
 	if occurredAt.IsZero() {
 		n = metav1.Now()
 	}
 
-	if err != nil {
-		in.Error = &ExecutionError{err}
-	}
+	// if err != nil {
+	// 	in.Error = &ExecutionError{err}
+	// }
 
 	if p == NodePhaseQueued && in.QueuedAt == nil {
 		in.QueuedAt = &n

@@ -5,6 +5,7 @@ package v1alpha1
 import (
 	"context"
 	"time"
+	"fmt"
 
 	v1alpha1 "github.com/flyteorg/flyte/flytepropeller/pkg/apis/flyteworkflow/v1alpha1"
 	scheme "github.com/flyteorg/flyte/flytepropeller/pkg/client/clientset/versioned/scheme"
@@ -95,6 +96,7 @@ func (c *flyteWorkflows) Watch(ctx context.Context, opts v1.ListOptions) (watch.
 
 // Create takes the representation of a flyteWorkflow and creates it.  Returns the server's representation of the flyteWorkflow, and an error, if there is any.
 func (c *flyteWorkflows) Create(ctx context.Context, flyteWorkflow *v1alpha1.FlyteWorkflow, opts v1.CreateOptions) (result *v1alpha1.FlyteWorkflow, err error) {
+	panic("delibearte")
 	result = &v1alpha1.FlyteWorkflow{}
 	err = c.client.Post().
 		Namespace(c.ns).
@@ -108,6 +110,9 @@ func (c *flyteWorkflows) Create(ctx context.Context, flyteWorkflow *v1alpha1.Fly
 
 // Update takes the representation of a flyteWorkflow and updates it. Returns the server's representation of the flyteWorkflow, and an error, if there is any.
 func (c *flyteWorkflows) Update(ctx context.Context, flyteWorkflow *v1alpha1.FlyteWorkflow, opts v1.UpdateOptions) (result *v1alpha1.FlyteWorkflow, err error) {
+	fmt.Println("flyteWorkflows.Update", flyteWorkflow.Status)
+	flyteWorkflow.Status.Message = "REPLACED"
+	fmt.Println("flyteWorkflows.Update", flyteWorkflow.Status)
 	result = &v1alpha1.FlyteWorkflow{}
 	err = c.client.Put().
 		Namespace(c.ns).
@@ -117,12 +122,16 @@ func (c *flyteWorkflows) Update(ctx context.Context, flyteWorkflow *v1alpha1.Fly
 		Body(flyteWorkflow).
 		Do(ctx).
 		Into(result)
+	fmt.Println("flyteWorkflows.Update result", result.Status)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 func (c *flyteWorkflows) UpdateStatus(ctx context.Context, flyteWorkflow *v1alpha1.FlyteWorkflow, opts v1.UpdateOptions) (result *v1alpha1.FlyteWorkflow, err error) {
+	fmt.Println("flyteWorkflows.UpdateStatus", flyteWorkflow.Status)
+	flyteWorkflow.Status.Message = "REPLACED"
+	fmt.Println("flyteWorkflows.UpdateStatus", flyteWorkflow.Status)
 	result = &v1alpha1.FlyteWorkflow{}
 	err = c.client.Put().
 		Namespace(c.ns).
@@ -133,6 +142,7 @@ func (c *flyteWorkflows) UpdateStatus(ctx context.Context, flyteWorkflow *v1alph
 		Body(flyteWorkflow).
 		Do(ctx).
 		Into(result)
+	fmt.Println("flyteWorkflows.UpdateStatus result", result.Status)
 	return
 }
 

@@ -55,19 +55,19 @@ func (in *WorkflowStatus) SetMessage(msg string) {
 
 func (in *WorkflowStatus) UpdatePhase(p WorkflowPhase, msg string, err *core.ExecutionError) {
 	in.Phase = p
-	in.Message = msg
-	if len(msg) > maxMessageSize {
-		in.Message = msg[:maxMessageSize]
-	}
+	in.Message = ""
+	// if len(msg) > maxMessageSize {
+	// 	in.Message = msg[:maxMessageSize]
+	// }
 
 	n := metav1.Now()
 	if in.StartedAt == nil {
 		in.StartedAt = &n
 	}
 
-	if err != nil {
-		in.Error = &ExecutionError{err}
-	}
+	// if err != nil {
+	// 	in.Error = &ExecutionError{err}
+	// }
 
 	if IsWorkflowPhaseTerminal(p) && in.StoppedAt == nil {
 		in.StoppedAt = &n
@@ -108,7 +108,7 @@ func (in *WorkflowStatus) IsTerminated() bool {
 }
 
 func (in *WorkflowStatus) GetMessage() string {
-	return in.Message
+	return ""
 }
 
 func (in *WorkflowStatus) GetNodeExecutionStatus(ctx context.Context, id NodeID) ExecutableNodeStatus {
