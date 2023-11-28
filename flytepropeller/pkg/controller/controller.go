@@ -389,6 +389,7 @@ func New(ctx context.Context, cfg *config.Config, kubeClientset kubernetes.Inter
 
 	// obtain references to shared index informers for FlyteWorkflow.
 	flyteworkflowInformer := flyteworkflowInformerFactory.Flyteworkflow().V1alpha1().FlyteWorkflows()
+	// TOMNEWTON - Used only once when starting the worker pool 
 	controller.flyteworkflowSynced = flyteworkflowInformer.Informer().HasSynced
 
 	podTemplateInformer := informerFactory.Core().V1().PodTemplates()
@@ -423,11 +424,13 @@ func New(ctx context.Context, cfg *config.Config, kubeClientset kubernetes.Inter
 	}
 	controller.workQueue = workQ
 
+	// TOMNEWTON - added to the worker pool 
 	controller.workflowStore, err = workflowstore.NewWorkflowStore(ctx, workflowstore.GetConfig(), flyteworkflowInformer.Lister(), flytepropellerClientset.FlyteworkflowV1alpha1(), scope)
 	if err != nil {
 		return nil, stdErrs.Wrapf(errors3.CausedByError, err, "failed to initialize workflow store")
 	}
 
+	// TOMNEWTON - project metrics only 
 	controller.levelMonitor = NewResourceLevelMonitor(scope.NewSubScope("collector"), flyteworkflowInformer.Lister())
 
 	recoveryClient := recovery.NewClient(adminClient)
@@ -449,6 +452,7 @@ func New(ctx context.Context, cfg *config.Config, kubeClientset kubernetes.Inter
 		return nil, err
 	}
 
+	// TOMNEWTON
 	handler := NewPropellerHandler(ctx, cfg, store, controller.workflowStore, workflowExecutor, scope)
 	controller.workerPool = NewWorkerPool(ctx, scope, workQ, handler)
 
@@ -458,6 +462,7 @@ func New(ctx context.Context, cfg *config.Config, kubeClientset kubernetes.Inter
 
 	logger.Info(ctx, "Setting up event handlers")
 	// Set up an event handler for when FlyteWorkflow resources change
+	// TOMNEWTON
 	flyteworkflowInformer.Informer().AddEventHandler(controller.getWorkflowUpdatesHandler())
 
 	updateHandler := flytek8s.GetPodTemplateUpdatesHandler(&flytek8s.DefaultPodTemplateStore)
