@@ -50,16 +50,18 @@ class Projects(_message.Message):
     def __init__(self, projects: _Optional[_Iterable[_Union[Project, _Mapping]]] = ..., token: _Optional[str] = ...) -> None: ...
 
 class ProjectListRequest(_message.Message):
-    __slots__ = ["limit", "token", "filters", "sort_by"]
+    __slots__ = ["limit", "token", "filters", "sort_by", "org"]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     TOKEN_FIELD_NUMBER: _ClassVar[int]
     FILTERS_FIELD_NUMBER: _ClassVar[int]
     SORT_BY_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
     limit: int
     token: str
     filters: str
     sort_by: _common_pb2.Sort
-    def __init__(self, limit: _Optional[int] = ..., token: _Optional[str] = ..., filters: _Optional[str] = ..., sort_by: _Optional[_Union[_common_pb2.Sort, _Mapping]] = ...) -> None: ...
+    org: str
+    def __init__(self, limit: _Optional[int] = ..., token: _Optional[str] = ..., filters: _Optional[str] = ..., sort_by: _Optional[_Union[_common_pb2.Sort, _Mapping]] = ..., org: _Optional[str] = ...) -> None: ...
 
 class ProjectRegisterRequest(_message.Message):
     __slots__ = ["project"]
@@ -74,3 +76,11 @@ class ProjectRegisterResponse(_message.Message):
 class ProjectUpdateResponse(_message.Message):
     __slots__ = []
     def __init__(self) -> None: ...
+
+class ProjectGetRequest(_message.Message):
+    __slots__ = ["id", "org"]
+    ID_FIELD_NUMBER: _ClassVar[int]
+    ORG_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    org: str
+    def __init__(self, id: _Optional[str] = ..., org: _Optional[str] = ...) -> None: ...

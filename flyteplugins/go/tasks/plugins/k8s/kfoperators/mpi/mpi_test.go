@@ -148,10 +148,12 @@ func dummyMPITaskContext(taskTemplate *core.TaskTemplate, resources *corev1.Reso
 		},
 	})
 	tID.OnGetGeneratedName().Return("some-acceptable-name")
+	tID.On("GetUniqueNodeID").Return("an-unique-id")
 
 	overrides := &mocks.TaskOverrides{}
 	overrides.OnGetResources().Return(resources)
 	overrides.OnGetExtendedResources().Return(extendedResources)
+	overrides.OnGetContainerImage().Return("")
 
 	taskExecutionMetadata := &mocks.TaskExecutionMetadata{}
 	taskExecutionMetadata.OnGetTaskExecutionID().Return(tID)

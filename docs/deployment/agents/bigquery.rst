@@ -1,6 +1,6 @@
 .. _deployment-agent-setup-bigquery:
 
-Google BigQuery Agent
+Google BigQuery agent
 ======================
 
 This guide provides an overview of setting up BigQuery agent in your Flyte deployment.
@@ -102,3 +102,5 @@ Upgrade the Flyte Helm release
     Replace ``<RELEASE_NAME>`` with the name of your release (e.g., ``flyte``)
 
     and ``<YOUR_NAMESPACE>`` with the name of your namespace (e.g., ``flyte``).
+
+For BigQuery agent on the Flyte cluster, see `BigQuery agent <https://docs.flyte.org/en/latest/flytesnacks/examples/bigquery_agent/index.html>`_.

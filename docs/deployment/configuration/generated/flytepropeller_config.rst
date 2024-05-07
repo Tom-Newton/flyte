@@ -608,6 +608,42 @@ Use the same gRPC credentials option as the flyteadmin client
   "false"
   
 
+max-retries (int)
+------------------------------------------------------------------------------------------------------------------------
+
+The max number of retries for event recording.
+
+**Default Value**: 
+
+.. code-block:: yaml
+
+  "5"
+  
+
+base-scalar (int)
+------------------------------------------------------------------------------------------------------------------------
+
+The base/scalar backoff duration in milliseconds for event recording retries.
+
+**Default Value**: 
+
+.. code-block:: yaml
+
+  "100"
+  
+
+backoff-jitter (string)
+------------------------------------------------------------------------------------------------------------------------
+
+A string representation of a floating point number between 0 and 1 specifying the jitter factor for event recording retries.
+
+**Default Value**: 
+
+.. code-block:: yaml
+
+  "0.1"
+  
+
 default-service-config (string)
 ------------------------------------------------------------------------------------------------------------------------
 
@@ -669,6 +705,42 @@ The max bucket size for event recording tokens.
 .. code-block:: yaml
 
   "1000"
+  
+
+max-retries (int)
+------------------------------------------------------------------------------------------------------------------------
+
+The max number of retries for event recording.
+
+**Default Value**: 
+
+.. code-block:: yaml
+
+  "5"
+  
+
+base-scalar (int)
+------------------------------------------------------------------------------------------------------------------------
+
+The base/scalar backoff duration in milliseconds for event recording retries.
+
+**Default Value**: 
+
+.. code-block:: yaml
+
+  "100"
+  
+
+backoff-jitter (string)
+------------------------------------------------------------------------------------------------------------------------
+
+A string representation of a floating point number between 0 and 1 specifying the jitter factor for event recording retries.
+
+**Default Value**: 
+
+.. code-block:: yaml
+
+  "0.1"
   
 
 Section: logger
@@ -1015,6 +1087,8 @@ k8s (`config.K8sPluginConfig`_)
   default-annotations:
     cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
   default-cpus: "1"
+  default-env-from-configmaps: null
+  default-env-from-secrets: null
   default-env-vars: null
   default-env-vars-from-env: null
   default-labels: null
@@ -1034,6 +1108,7 @@ k8s (`config.K8sPluginConfig`_)
   gpu-unpartitioned-node-selector-requirement: null
   gpu-unpartitioned-toleration: null
   image-pull-backoff-grace-period: 3m0s
+  image-pull-policy: ""
   inject-finalizer: false
   interruptible-node-selector: null
   interruptible-node-selector-requirement: null
@@ -1066,8 +1141,7 @@ k8s-array (`k8s.Config`_)
       cloudwatch-log-group: ""
       cloudwatch-region: ""
       cloudwatch-template-uri: ""
-      flyin-enabled: false
-      flyin-template-uri: ""
+      dynamic-log-links: null
       gcp-project: ""
       kubernetes-enabled: true
       kubernetes-template-uri: http://localhost:30082/#!/log/{{ .namespace }}/{{ .podName
@@ -1117,8 +1191,7 @@ logs (`logs.LogConfig`_)
   cloudwatch-log-group: ""
   cloudwatch-region: ""
   cloudwatch-template-uri: ""
-  flyin-enabled: false
-  flyin-template-uri: ""
+  dynamic-log-links: null
   gcp-project: ""
   kubernetes-enabled: true
   kubernetes-template-uri: http://localhost:30082/#!/log/{{ .namespace }}/{{ .podName
@@ -1179,8 +1252,7 @@ ray (`ray.Config`_)
     cloudwatch-log-group: ""
     cloudwatch-region: ""
     cloudwatch-template-uri: ""
-    flyin-enabled: false
-    flyin-template-uri: ""
+    dynamic-log-links: null
     gcp-project: ""
     kubernetes-enabled: false
     kubernetes-template-uri: ""
@@ -1197,6 +1269,7 @@ ray (`ray.Config`_)
     enabled: false
     endpoint: ""
     name: ""
+  serviceAccount: default
   serviceType: NodePort
   shutdownAfterJobFinishes: true
   ttlSecondsAfterFinished: 3600
@@ -1247,8 +1320,7 @@ spark (`spark.Config`_)
       cloudwatch-log-group: ""
       cloudwatch-region: ""
       cloudwatch-template-uri: ""
-      flyin-enabled: false
-      flyin-template-uri: ""
+      dynamic-log-links: null
       gcp-project: ""
       kubernetes-enabled: false
       kubernetes-template-uri: ""
@@ -1262,8 +1334,7 @@ spark (`spark.Config`_)
       cloudwatch-log-group: ""
       cloudwatch-region: ""
       cloudwatch-template-uri: ""
-      flyin-enabled: false
-      flyin-template-uri: ""
+      dynamic-log-links: null
       gcp-project: ""
       kubernetes-enabled: true
       kubernetes-template-uri: http://localhost:30082/#!/log/{{ .namespace }}/{{ .podName
@@ -1278,8 +1349,7 @@ spark (`spark.Config`_)
       cloudwatch-log-group: ""
       cloudwatch-region: ""
       cloudwatch-template-uri: ""
-      flyin-enabled: false
-      flyin-template-uri: ""
+      dynamic-log-links: null
       gcp-project: ""
       kubernetes-enabled: false
       kubernetes-template-uri: ""
@@ -1293,8 +1363,7 @@ spark (`spark.Config`_)
       cloudwatch-log-group: ""
       cloudwatch-region: ""
       cloudwatch-template-uri: ""
-      flyin-enabled: false
-      flyin-template-uri: ""
+      dynamic-log-links: null
       gcp-project: ""
       kubernetes-enabled: false
       kubernetes-template-uri: ""
@@ -1348,7 +1417,7 @@ resourceConstraints (`core.ResourceConstraintsSpec`_)
     Value: 100
   
 
-defaultAgent (`agent.Agent`_)
+defaultAgent (`agent.Deployment`_)
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 The default agent.
@@ -1364,7 +1433,7 @@ The default agent.
   timeouts: null
   
 
-agents (map[string]*agent.Agent)
+agents (map[string]*agent.Deployment)
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 The agents.
@@ -1397,7 +1466,7 @@ supportedTaskTypes ([]string)
   - task_type_2
   
 
-agent.Agent
+agent.Deployment
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 endpoint (string)
@@ -2193,6 +2262,26 @@ default-env-vars-from-env (map[string]string)
   null
   
 
+default-env-from-configmaps ([]string)
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+**Default Value**: 
+
+.. code-block:: yaml
+
+  null
+  
+
+default-env-from-secrets ([]string)
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+**Default Value**: 
+
+.. code-block:: yaml
+
+  null
+  
+
 default-cpus (`resource.Quantity`_)
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
@@ -2370,6 +2459,16 @@ image-pull-backoff-grace-period (`config.Duration`_)
 .. code-block:: yaml
 
   3m0s
+  
+
+image-pull-policy (string)
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+**Default Value**: 
+
+.. code-block:: yaml
+
+  ""
   
 
 pod-pending-timeout (`config.Duration`_)
@@ -2941,8 +3040,7 @@ Config for log links for k8s array jobs.
     cloudwatch-log-group: ""
     cloudwatch-region: ""
     cloudwatch-template-uri: ""
-    flyin-enabled: false
-    flyin-template-uri: ""
+    dynamic-log-links: null
     gcp-project: ""
     kubernetes-enabled: true
     kubernetes-template-uri: http://localhost:30082/#!/log/{{ .namespace }}/{{ .podName
@@ -3060,8 +3158,7 @@ Defines the log config for k8s logs.
   cloudwatch-log-group: ""
   cloudwatch-region: ""
   cloudwatch-template-uri: ""
-  flyin-enabled: false
-  flyin-template-uri: ""
+  dynamic-log-links: null
   gcp-project: ""
   kubernetes-enabled: true
   kubernetes-template-uri: http://localhost:30082/#!/log/{{ .namespace }}/{{ .podName
@@ -3209,28 +3306,14 @@ Template Uri to use when building stackdriver log links
   ""
   
 
-flyin-enabled (bool)
+dynamic-log-links (map[string]tasklog.TemplateLogPlugin)
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-Enable Log-links to flyin logs
 
 **Default Value**: 
 
 .. code-block:: yaml
 
-  "false"
-  
-
-flyin-template-uri (string)
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-Template Uri to use when building flyin log links
-
-**Default Value**: 
-
-.. code-block:: yaml
-
-  ""
+  null
   
 
 templates ([]tasklog.TemplateLogPlugin)
@@ -3406,28 +3489,14 @@ Template Uri to use when building stackdriver log links
   ""
   
 
-flyin-enabled (bool)
+dynamic-log-links (map[string]tasklog.TemplateLogPlugin)
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-Enable Log-links to flyin logs
 
 **Default Value**: 
 
 .. code-block:: yaml
 
-  "false"
-  
-
-flyin-template-uri (string)
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-Template Uri to use when building flyin log links
-
-**Default Value**: 
-
-.. code-block:: yaml
-
-  ""
+  null
   
 
 templates ([]tasklog.TemplateLogPlugin)
@@ -3531,8 +3600,7 @@ logs (`logs.LogConfig`_)
   cloudwatch-log-group: ""
   cloudwatch-region: ""
   cloudwatch-template-uri: ""
-  flyin-enabled: false
-  flyin-template-uri: ""
+  dynamic-log-links: null
   gcp-project: ""
   kubernetes-enabled: false
   kubernetes-template-uri: ""
@@ -3555,8 +3623,6 @@ logsSidecar (v1.Container)
 
 dashboardURLTemplate (tasklog.TemplateLogPlugin)
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-Template for URL of Ray dashboard running on a head node.
 
 **Default Value**: 
 
@@ -3592,6 +3658,18 @@ Enable usage stats for ray jobs. These stats are submitted to usage-stats.ray.io
 .. code-block:: yaml
 
   "false"
+  
+
+serviceAccount (string)
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+The k8s service account to run as
+
+**Default Value**: 
+
+.. code-block:: yaml
+
+  default
   
 
 ray.DefaultConfig
@@ -3768,8 +3846,7 @@ Config for log links for spark applications.
     cloudwatch-log-group: ""
     cloudwatch-region: ""
     cloudwatch-template-uri: ""
-    flyin-enabled: false
-    flyin-template-uri: ""
+    dynamic-log-links: null
     gcp-project: ""
     kubernetes-enabled: false
     kubernetes-template-uri: ""
@@ -3783,8 +3860,7 @@ Config for log links for spark applications.
     cloudwatch-log-group: ""
     cloudwatch-region: ""
     cloudwatch-template-uri: ""
-    flyin-enabled: false
-    flyin-template-uri: ""
+    dynamic-log-links: null
     gcp-project: ""
     kubernetes-enabled: true
     kubernetes-template-uri: http://localhost:30082/#!/log/{{ .namespace }}/{{ .podName
@@ -3799,8 +3875,7 @@ Config for log links for spark applications.
     cloudwatch-log-group: ""
     cloudwatch-region: ""
     cloudwatch-template-uri: ""
-    flyin-enabled: false
-    flyin-template-uri: ""
+    dynamic-log-links: null
     gcp-project: ""
     kubernetes-enabled: false
     kubernetes-template-uri: ""
@@ -3814,8 +3889,7 @@ Config for log links for spark applications.
     cloudwatch-log-group: ""
     cloudwatch-region: ""
     cloudwatch-template-uri: ""
-    flyin-enabled: false
-    flyin-template-uri: ""
+    dynamic-log-links: null
     gcp-project: ""
     kubernetes-enabled: false
     kubernetes-template-uri: ""
@@ -3842,8 +3916,7 @@ Defines the log config that's not split into user/system.
   cloudwatch-log-group: ""
   cloudwatch-region: ""
   cloudwatch-template-uri: ""
-  flyin-enabled: false
-  flyin-template-uri: ""
+  dynamic-log-links: null
   gcp-project: ""
   kubernetes-enabled: true
   kubernetes-template-uri: http://localhost:30082/#!/log/{{ .namespace }}/{{ .podName
@@ -3868,8 +3941,7 @@ Defines the log config for user logs.
   cloudwatch-log-group: ""
   cloudwatch-region: ""
   cloudwatch-template-uri: ""
-  flyin-enabled: false
-  flyin-template-uri: ""
+  dynamic-log-links: null
   gcp-project: ""
   kubernetes-enabled: false
   kubernetes-template-uri: ""
@@ -3893,8 +3965,7 @@ Defines the log config for system logs.
   cloudwatch-log-group: ""
   cloudwatch-region: ""
   cloudwatch-template-uri: ""
-  flyin-enabled: false
-  flyin-template-uri: ""
+  dynamic-log-links: null
   gcp-project: ""
   kubernetes-enabled: false
   kubernetes-template-uri: ""
@@ -3918,8 +3989,7 @@ All user logs across driver and executors.
   cloudwatch-log-group: ""
   cloudwatch-region: ""
   cloudwatch-template-uri: ""
-  flyin-enabled: false
-  flyin-template-uri: ""
+  dynamic-log-links: null
   gcp-project: ""
   kubernetes-enabled: false
   kubernetes-template-uri: ""
@@ -4188,13 +4258,13 @@ Enable events publishing to K8s events API.
 max-output-size-bytes (int64)
 ------------------------------------------------------------------------------------------------------------------------
 
-Maximum size of outputs per task
+Deprecated! Use storage.limits.maxDownloadMBs instead
 
 **Default Value**: 
 
 .. code-block:: yaml
 
-  "10485760"
+  "-1"
   
 
 enable-grpc-latency-metrics (bool)
@@ -4237,6 +4307,7 @@ config for a workflow node
     node-execution-deadline: 0s
     workflow-active-deadline: 0s
   default-max-attempts: 1
+  enable-cr-debug-metadata: false
   ignore-retry-cause: false
   interruptible-failure-threshold: -1
   max-node-retries-system-failures: 3
@@ -4363,18 +4434,6 @@ Enable creation of the FlyteWorkflow CRD on startup
   "false"
   
 
-array-node-event-version (int)
-------------------------------------------------------------------------------------------------------------------------
-
-ArrayNode eventing version. 0 => legacy (drop-in replacement for maptask), 1 => new
-
-**Default Value**: 
-
-.. code-block:: yaml
-
-  "0"
-  
-
 node-execution-worker-count (int)
 ------------------------------------------------------------------------------------------------------------------------
 
@@ -4385,6 +4444,19 @@ Number of workers to evaluate node executions, currently only used for array nod
 .. code-block:: yaml
 
   "8"
+  
+
+array-node-config (`config.ArrayNodeConfig`_)
+------------------------------------------------------------------------------------------------------------------------
+
+Configuration for array nodes
+
+**Default Value**: 
+
+.. code-block:: yaml
+
+  default-parallelism-behavior: unlimited
+  event-version: 0
   
 
 admin-launcher (`launchplan.AdminConfig`_)
@@ -4425,6 +4497,33 @@ workflowstore (`workflowstore.Config`_)
 .. code-block:: yaml
 
   policy: ResourceVersionCache
+  
+
+config.ArrayNodeConfig
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+event-version (int)
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+ArrayNode eventing version. 0 => legacy (drop-in replacement for maptask), 1 => new
+
+**Default Value**: 
+
+.. code-block:: yaml
+
+  "0"
+  
+
+default-parallelism-behavior (string)
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+Default parallelism behavior for array nodes
+
+**Default Value**: 
+
+.. code-block:: yaml
+
+  unlimited
   
 
 config.CompositeQueueConfig
@@ -4565,7 +4664,7 @@ config.Config (resourcemanager)
 type (string)
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-Which resource manager to use
+Which resource manager to use, redis or noop. Default is noop.
 
 **Default Value**: 
 
@@ -4873,6 +4972,18 @@ ignore-retry-cause (bool)
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 Ignore retry cause and count all attempts toward a node's max attempts
+
+**Default Value**: 
+
+.. code-block:: yaml
+
+  "false"
+  
+
+enable-cr-debug-metadata (bool)
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+Collapse node on any terminal state, not just successful terminations. This is useful to reduce the size of workflow state in etcd.
 
 **Default Value**: 
 

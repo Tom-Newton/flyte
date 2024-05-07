@@ -379,11 +379,13 @@ func dummySparkTaskContext(taskTemplate *core.TaskTemplate, interruptible bool) 
 		},
 	})
 	tID.On("GetGeneratedName").Return("some-acceptable-name")
+	tID.On("GetUniqueNodeID").Return("an-unique-id")
 
 	overrides := &mocks.TaskOverrides{}
 	overrides.On("GetResources").Return(&corev1.ResourceRequirements{})
 	// No support for GPUs, and consequently, ExtendedResources on Spark plugin.
 	overrides.On("GetExtendedResources").Return(nil)
+	overrides.OnGetContainerImage().Return("")
 
 	taskExecutionMetadata := &mocks.TaskExecutionMetadata{}
 	taskExecutionMetadata.On("GetTaskExecutionID").Return(tID)

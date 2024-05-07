@@ -258,7 +258,7 @@ type ExecutableGateNode interface {
 
 type ExecutableArrayNode interface {
 	GetSubNodeSpec() *NodeSpec
-	GetParallelism() uint32
+	GetParallelism() *uint32
 	GetMinSuccesses() *uint32
 	GetMinSuccessRatio() *float32
 }
@@ -442,6 +442,7 @@ type ExecutableNode interface {
 	GetActiveDeadline() *time.Duration
 	IsInterruptible() *bool
 	GetName() string
+	GetContainerImage() string
 }
 
 // ExecutableWorkflowStatus is an interface for the Workflow p. This is the mutable portion for a Workflow

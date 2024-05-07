@@ -230,7 +230,7 @@ func (p *Propeller) Handle(ctx context.Context, namespace, name string) error {
 	}
 
 	streak := 0
-	defer p.metrics.StreakLength.Add(ctx, float64(streak))
+	defer func() { p.metrics.StreakLength.Add(ctx, float64(streak)) }()
 
 	maxLength := p.cfg.MaxStreakLength
 	if maxLength <= 0 {
@@ -385,11 +385,24 @@ func (p *Propeller) streak(ctx context.Context, w *v1alpha1.FlyteWorkflow, wfClo
 			// Workflow is too large, we will mark the workflow as failing and record it. This will automatically
 			// propagate the failure in the next round.
 			mutableW := w.DeepCopy()
-			mutableW.Status.UpdatePhase(v1alpha1.WorkflowPhaseFailing, "Workflow size has breached threshold, aborting", &core.ExecutionError{
-				Kind:    core.ExecutionError_SYSTEM,
-				Code:    "WorkflowTooLarge",
-				Message: "Workflow execution state is too large for Flyte to handle.",
-			})
+			// catch potential indefinite update loop
+			if mutatedWf.GetExecutionStatus().IsTerminated() {
+				ResetFinalizers(mutableW)
+				SetDefinitionVersionIfEmpty(mutableW, v1alpha1.LatestWorkflowDefinitionVersion)
+				SetCompletedLabel(mutableW, time.Now())
+				msg := fmt.Sprintf("Workflow size has breached threshold. Finalized with status: %v", mutatedWf.GetExecutionStatus().GetPhase())
+				mutableW.Status.UpdatePhase(v1alpha1.WorkflowPhaseFailed, msg, &core.ExecutionError{
+					Kind:    core.ExecutionError_SYSTEM,
+					Code:    "WorkflowTooLarge",
+					Message: "Workflow execution state is too large for Flyte to handle.",
+				})
+			} else {
+				mutableW.Status.UpdatePhase(v1alpha1.WorkflowPhaseFailing, "Workflow size has breached threshold, aborting", &core.ExecutionError{
+					Kind:    core.ExecutionError_SYSTEM,
+					Code:    "WorkflowTooLarge",
+					Message: "Workflow execution state is too large for Flyte to handle.",
+				})
+			}
 			if _, e := p.wfStore.Update(ctx, mutableW, workflowstore.PriorityClassCritical); e != nil {
 				logger.Errorf(ctx, "Failed recording a large workflow as failed, reason: %s. Retrying...", e)
 				return nil, e

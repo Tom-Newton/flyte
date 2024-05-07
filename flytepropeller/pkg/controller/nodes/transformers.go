@@ -69,6 +69,8 @@ func ToNodeExecEventPhase(p handler.EPhase) core.NodeExecution_Phase {
 		return core.NodeExecution_FAILED
 	case handler.EPhaseRecovered:
 		return core.NodeExecution_RECOVERED
+	case handler.EPhaseTimedout:
+		return core.NodeExecution_TIMED_OUT
 	default:
 		return core.NodeExecution_UNDEFINED
 	}
@@ -176,8 +178,10 @@ func ToNodeExecutionEvent(nodeExecID *core.NodeExecutionIdentifier,
 	if node.GetKind() == v1alpha1.NodeKindWorkflow && node.GetWorkflowNode() != nil && node.GetWorkflowNode().GetSubWorkflowRef() != nil {
 		nev.IsParent = true
 	} else if node.GetKind() == v1alpha1.NodeKindArray {
-		nev.IsParent = true
 		nev.IsArray = true
+		if config.GetConfig().ArrayNode.EventVersion == 1 {
+			nev.IsParent = true
+		}
 	} else if dynamicNodePhase != v1alpha1.DynamicNodePhaseNone {
 		nev.IsDynamic = true
 		if nev.GetTaskNodeMetadata() != nil && nev.GetTaskNodeMetadata().DynamicWorkflow != nil {

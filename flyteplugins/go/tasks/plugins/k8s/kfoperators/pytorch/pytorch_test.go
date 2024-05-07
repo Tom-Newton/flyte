@@ -123,7 +123,7 @@ func dummyPytorchTaskTemplate(id string, args ...interface{}) *core.TaskTemplate
 	}
 }
 
-func dummyPytorchTaskContext(taskTemplate *core.TaskTemplate, resources *corev1.ResourceRequirements, extendedResources *core.ExtendedResources) pluginsCore.TaskExecutionContext {
+func dummyPytorchTaskContext(taskTemplate *core.TaskTemplate, resources *corev1.ResourceRequirements, extendedResources *core.ExtendedResources, containerImage string) pluginsCore.TaskExecutionContext {
 	taskCtx := &mocks.TaskExecutionContext{}
 	inputReader := &pluginIOMocks.InputReader{}
 	inputReader.OnGetInputPrefixPath().Return("/input/prefix")
@@ -154,10 +154,12 @@ func dummyPytorchTaskContext(taskTemplate *core.TaskTemplate, resources *corev1.
 		},
 	})
 	tID.OnGetGeneratedName().Return("some-acceptable-name")
+	tID.On("GetUniqueNodeID").Return("an-unique-id")
 
 	overrides := &mocks.TaskOverrides{}
 	overrides.OnGetResources().Return(resources)
 	overrides.OnGetExtendedResources().Return(extendedResources)
+	overrides.OnGetContainerImage().Return(containerImage)
 
 	taskExecutionMetadata := &mocks.TaskExecutionMetadata{}
 	taskExecutionMetadata.OnGetTaskExecutionID().Return(tID)
@@ -278,7 +280,7 @@ func dummyPytorchJobResource(pytorchResourceHandler pytorchOperatorResourceHandl
 
 	ptObj := dummyPytorchCustomObj(workers)
 	taskTemplate := dummyPytorchTaskTemplate("job1", ptObj)
-	resource, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil))
+	resource, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil, ""))
 	if err != nil {
 		panic(err)
 	}
@@ -306,7 +308,7 @@ func TestBuildResourcePytorchElastic(t *testing.T) {
 	ptObj := dummyElasticPytorchCustomObj(2, plugins.ElasticConfig{MinReplicas: 1, MaxReplicas: 2, NprocPerNode: 4, RdzvBackend: "c10d"})
 	taskTemplate := dummyPytorchTaskTemplate("job2", ptObj)
 
-	resource, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil))
+	resource, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil, ""))
 	assert.NoError(t, err)
 	assert.NotNil(t, resource)
 
@@ -349,7 +351,7 @@ func TestBuildResourcePytorch(t *testing.T) {
 	ptObj := dummyPytorchCustomObj(100)
 	taskTemplate := dummyPytorchTaskTemplate("job3", ptObj)
 
-	res, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil))
+	res, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil, ""))
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
 
@@ -382,6 +384,74 @@ func TestBuildResourcePytorch(t *testing.T) {
 		}
 
 		assert.True(t, hasContainerWithDefaultPytorchName)
+	}
+}
+
+func TestBuildResourcePytorchContainerImage(t *testing.T) {
+	assert.NoError(t, flytek8sConfig.SetK8sPluginConfig(&flytek8sConfig.K8sPluginConfig{}))
+
+	fixtures := []struct {
+		name                   string
+		resources              *corev1.ResourceRequirements
+		containerImageOverride string
+	}{
+		{
+			"without overrides",
+			&corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					flytek8s.ResourceNvidiaGPU: resource.MustParse("1"),
+				},
+			},
+			"",
+		},
+		{
+			"with overrides",
+			&corev1.ResourceRequirements{
+				Limits: corev1.ResourceList{
+					flytek8s.ResourceNvidiaGPU: resource.MustParse("1"),
+				},
+			},
+			"container-image-override",
+		},
+	}
+
+	testConfigs := []struct {
+		name   string
+		plugin *plugins.DistributedPyTorchTrainingTask
+	}{
+		{
+			"pytorch",
+			dummyPytorchCustomObj(100),
+		},
+		{
+			"elastic pytorch",
+			dummyElasticPytorchCustomObj(2, plugins.ElasticConfig{MinReplicas: 1, MaxReplicas: 2, NprocPerNode: 4, RdzvBackend: "c10d"}),
+		},
+	}
+
+	for _, tCfg := range testConfigs {
+		for _, f := range fixtures {
+			t.Run(tCfg.name+" "+f.name, func(t *testing.T) {
+				taskTemplate := dummyPytorchTaskTemplate("job", tCfg.plugin)
+				taskContext := dummyPytorchTaskContext(taskTemplate, f.resources, nil, f.containerImageOverride)
+				pytorchResourceHandler := pytorchOperatorResourceHandler{}
+				r, err := pytorchResourceHandler.BuildResource(context.TODO(), taskContext)
+				assert.NoError(t, err)
+				assert.NotNil(t, r)
+				pytorchJob, ok := r.(*kubeflowv1.PyTorchJob)
+				assert.True(t, ok)
+
+				for _, replicaSpec := range pytorchJob.Spec.PyTorchReplicaSpecs {
+					var expectedContainerImage string
+					if len(f.containerImageOverride) > 0 {
+						expectedContainerImage = f.containerImageOverride
+					} else {
+						expectedContainerImage = testImage
+					}
+					assert.Equal(t, expectedContainerImage, replicaSpec.Template.Spec.Containers[0].Image)
+				}
+			})
+		}
 	}
 }
 
@@ -505,7 +575,7 @@ func TestBuildResourcePytorchExtendedResources(t *testing.T) {
 			t.Run(tCfg.name+" "+f.name, func(t *testing.T) {
 				taskTemplate := dummyPytorchTaskTemplate("job", tCfg.plugin)
 				taskTemplate.ExtendedResources = f.extendedResourcesBase
-				taskContext := dummyPytorchTaskContext(taskTemplate, f.resources, f.extendedResourcesOverride)
+				taskContext := dummyPytorchTaskContext(taskTemplate, f.resources, f.extendedResourcesOverride, "")
 				pytorchResourceHandler := pytorchOperatorResourceHandler{}
 				r, err := pytorchResourceHandler.BuildResource(context.TODO(), taskContext)
 				assert.NoError(t, err)
@@ -538,7 +608,7 @@ func TestGetTaskPhase(t *testing.T) {
 		return dummyPytorchJobResource(pytorchResourceHandler, 2, conditionType)
 	}
 
-	taskCtx := dummyPytorchTaskContext(dummyPytorchTaskTemplate("", dummyPytorchCustomObj(2)), resourceRequirements, nil)
+	taskCtx := dummyPytorchTaskContext(dummyPytorchTaskTemplate("", dummyPytorchCustomObj(2)), resourceRequirements, nil, "")
 	taskPhase, err := pytorchResourceHandler.GetTaskPhase(ctx, taskCtx, dummyPytorchJobResourceCreator(commonOp.JobCreated))
 	assert.NoError(t, err)
 	assert.Equal(t, pluginsCore.PhaseQueued, taskPhase.Phase())
@@ -581,7 +651,7 @@ func TestGetLogs(t *testing.T) {
 
 	pytorchResourceHandler := pytorchOperatorResourceHandler{}
 	pytorchJob := dummyPytorchJobResource(pytorchResourceHandler, workers, commonOp.JobRunning)
-	taskCtx := dummyPytorchTaskContext(dummyPytorchTaskTemplate("", dummyPytorchCustomObj(workers)), resourceRequirements, nil)
+	taskCtx := dummyPytorchTaskContext(dummyPytorchTaskTemplate("", dummyPytorchCustomObj(workers)), resourceRequirements, nil, "")
 	jobLogs, err := common.GetLogs(taskCtx, common.PytorchTaskType, pytorchJob.ObjectMeta, hasMaster, workers, 0, 0, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(jobLogs))
@@ -601,7 +671,7 @@ func TestGetLogsElastic(t *testing.T) {
 
 	pytorchResourceHandler := pytorchOperatorResourceHandler{}
 	pytorchJob := dummyPytorchJobResource(pytorchResourceHandler, workers, commonOp.JobRunning)
-	taskCtx := dummyPytorchTaskContext(dummyPytorchTaskTemplate("", dummyPytorchCustomObj(workers)), resourceRequirements, nil)
+	taskCtx := dummyPytorchTaskContext(dummyPytorchTaskTemplate("", dummyPytorchCustomObj(workers)), resourceRequirements, nil, "")
 	jobLogs, err := common.GetLogs(taskCtx, common.PytorchTaskType, pytorchJob.ObjectMeta, hasMaster, workers, 0, 0, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(jobLogs))
@@ -632,7 +702,7 @@ func TestReplicaCounts(t *testing.T) {
 			ptObj := dummyPytorchCustomObj(test.workerReplicaCount)
 			taskTemplate := dummyPytorchTaskTemplate("the job", ptObj)
 
-			res, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil))
+			res, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil, ""))
 			if test.expectError {
 				assert.Error(t, err)
 				assert.Nil(t, res)
@@ -714,7 +784,7 @@ func TestBuildResourcePytorchV1(t *testing.T) {
 	taskTemplate := dummyPytorchTaskTemplate("job4", taskConfig)
 	taskTemplate.TaskTypeVersion = 1
 
-	res, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil))
+	res, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil, ""))
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
 
@@ -758,7 +828,7 @@ func TestBuildResourcePytorchV1WithRunPolicy(t *testing.T) {
 	taskTemplate := dummyPytorchTaskTemplate("job5", taskConfig)
 	taskTemplate.TaskTypeVersion = 1
 
-	res, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil))
+	res, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil, ""))
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
 
@@ -818,7 +888,7 @@ func TestBuildResourcePytorchV1WithOnlyWorkerSpec(t *testing.T) {
 	taskTemplate := dummyPytorchTaskTemplate("job5", taskConfig)
 	taskTemplate.TaskTypeVersion = 1
 
-	res, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil))
+	res, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil, ""))
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
 
@@ -889,7 +959,7 @@ func TestBuildResourcePytorchV1ResourceTolerations(t *testing.T) {
 	taskTemplate := dummyPytorchTaskTemplate("job4", taskConfig)
 	taskTemplate.TaskTypeVersion = 1
 
-	res, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil))
+	res, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil, ""))
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
 
@@ -911,7 +981,7 @@ func TestBuildResourcePytorchV1WithElastic(t *testing.T) {
 	taskTemplate.TaskTypeVersion = 1
 
 	pytorchResourceHandler := pytorchOperatorResourceHandler{}
-	resource, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil))
+	resource, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil, ""))
 	assert.NoError(t, err)
 	assert.NotNil(t, resource)
 
@@ -947,7 +1017,7 @@ func TestBuildResourcePytorchV1WithZeroWorker(t *testing.T) {
 	pytorchResourceHandler := pytorchOperatorResourceHandler{}
 	taskTemplate := dummyPytorchTaskTemplate("job5", taskConfig)
 	taskTemplate.TaskTypeVersion = 1
-	_, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil))
+	_, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil, ""))
 	assert.Error(t, err)
 }
 
@@ -964,7 +1034,7 @@ func TestGetReplicaCount(t *testing.T) {
 	pytorchResourceHandler := pytorchOperatorResourceHandler{}
 	tfObj := dummyPytorchCustomObj(1)
 	taskTemplate := dummyPytorchTaskTemplate("the job", tfObj)
-	resource, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil))
+	resource, err := pytorchResourceHandler.BuildResource(context.TODO(), dummyPytorchTaskContext(taskTemplate, resourceRequirements, nil, ""))
 	assert.NoError(t, err)
 	assert.NotNil(t, resource)
 	PytorchJob, ok := resource.(*kubeflowv1.PyTorchJob)

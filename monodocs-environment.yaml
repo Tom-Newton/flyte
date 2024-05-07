@@ -6,7 +6,7 @@ dependencies:
   - pip
   - codespell
   - furo
-  - flytekit
+  - flytekit>=1.10.2
   - gitpython
   - ipython!=8.7.0
   - graphviz
@@ -14,22 +14,22 @@ dependencies:
   - myst-nb
   - psycopg2-binary
   - recommonmark
-  - sphinx==4.5.0
+  - sphinx
   - sphinx-prompt
   - sphinx-click
   - sphinx-autoapi
   - sphinx-copybutton
   - sphinx-issues
   - sphinx_fontawesome
-  - sphinx-panels
+  - sphinx-design
+  - sphinx-reredirects
   - sphinxcontrib-mermaid
-  - sphinxcontrib-youtube==1.2.0
+  - sphinxcontrib-youtube
   - sphinx-tabs
   - sphinx-tags==0.2.1
 
   # Packages for Plugin docs
   # Package name                Plugin needing it
-  - retry                       # aws sagemaker
   - botocore                    # fsspec
   - fsspec                      # fsspec
   - google-cloud-bigquery       # bigquery
@@ -38,6 +38,7 @@ dependencies:
   - great-expectations          # greatexpectations
   - datasets                    # huggingface
   - kubernetes                  # k8s-pod
+  - python-kubernetes           # k8s-pod
   - modin                       # modin
   - pandera                     # pandera
   - pydantic                    # vaex, pydantic
@@ -53,9 +54,10 @@ dependencies:
   - tensorflow>=2.13.0          # onnxtensorflow
   - scikit-learn                # scikit-learn
   - dask[distributed]           # dask
-  - mlflow==2.7.0               # mlflow
+  - mlflow>=2.10.0              # mlflow
   - snowflake-connector-python  # snowflake
   - vaex-core                   # vaex
+  - openai                      # chatgpt
 
   - pip:
     - readthedocs-sphinx-ext
@@ -67,12 +69,15 @@ dependencies:
     - flytekitplugins-kfpytorch
     - flytekitplugins-sqlalchemy
     - dolt_integrations
+    - modin
     - google-cloud
     - ydata_profiling
     - whylogs==1.3.3              # whylogs
     - whylabs-client              # whylogs
     - ray==2.6.3
     - duckdb
+    - aioboto3>=12.3.0                    # aws sagemaker inference
+    - databricks-cli              # mlflow
 
 platforms:
   - linux-64
