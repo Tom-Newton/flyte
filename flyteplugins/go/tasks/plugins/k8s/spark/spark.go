@@ -167,26 +167,22 @@ func createSparkPodSpec(
 		labels = pluginsUtils.UnionMaps(labels, k8sPod.GetMetadata().GetLabels())
 	}
 
-	sparkEnv := make([]v1.EnvVar, 0)
-	for _, envVar := range container.Env {
-		sparkEnv = append(sparkEnv, *envVar.DeepCopy())
+	for i := range podSpec.Containers {
+		if podSpec.Containers[i].Name == container.Name {
+			podSpec.Containers[i].Env = append(podSpec.Containers[i].Env,
+				v1.EnvVar{Name: "FLYTE_MAX_ATTEMPTS", Value: strconv.Itoa(int(taskCtx.TaskExecutionMetadata().GetMaxAttempts()))})
+		}
 	}
-	sparkEnv = append(sparkEnv, v1.EnvVar{Name: "FLYTE_MAX_ATTEMPTS", Value: strconv.Itoa(int(taskCtx.TaskExecutionMetadata().GetMaxAttempts()))})
 
 	spec := sparkOp.SparkPodSpec{
-		Affinity:           podSpec.Affinity,
-		Annotations:        annotations,
-		Labels:             labels,
-		Env:                sparkEnv,
-		Image:              &container.Image,
-		PodSecurityContext: podSpec.SecurityContext,
-		SecurityContext:    container.SecurityContext,
-		DNSConfig:          podSpec.DNSConfig.DeepCopy(),
-		Tolerations:        podSpec.Tolerations,
-		SchedulerName:      &podSpec.SchedulerName,
-		NodeSelector:       podSpec.NodeSelector,
-		HostNetwork:        &podSpec.HostNetwork,
-		ServiceAccount:     strPtr(serviceAccountName(taskCtx.TaskExecutionMetadata())),
+		ServiceAccount: strPtr(serviceAccountName(taskCtx.TaskExecutionMetadata())),
+		Template: &v1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: annotations,
+				Labels:      labels,
+			},
+			Spec: *podSpec,
+		},
 	}
 	return &spec
 }
