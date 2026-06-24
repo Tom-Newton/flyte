@@ -177,12 +177,10 @@ func createSparkPodSpec(
 	spec := sparkOp.SparkPodSpec{
 		ServiceAccount: strPtr(serviceAccountName(taskCtx.TaskExecutionMetadata())),
 		Template: &v1.PodTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{
-				Annotations: annotations,
-				Labels:      labels,
-			},
 			Spec: *podSpec,
 		},
+		Annotations: annotations,
+		Labels:      labels,
 	}
 	return &spec
 }
